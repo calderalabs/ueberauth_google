@@ -33,7 +33,13 @@ defmodule Ueberauth.Strategy.Google do
   """
   def handle_callback!(%Plug.Conn{params: %{"code" => code}} = conn) do
     params = [code: code]
-    opts = [redirect_uri: callback_url(conn)]
+
+    redirect_uri = case Plug.Conn.get_req_header(conn, "x-requested-with") do
+      ["XMLHttpRequest"] -> "postmessage"
+      _ -> callback_url(conn)
+    end
+
+    opts = [redirect_uri: redirect_uri]
     case Ueberauth.Strategy.Google.OAuth.get_access_token(params, opts) do
       {:ok, token} ->
         fetch_user(conn, token)
